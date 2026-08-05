@@ -10,10 +10,16 @@ local R, nothing to configure beyond switching the Colab runtime to R.
 
 ## What's here
 
-`epibyhand_tutorial.ipynb` — the tutorial, with cells left unrun so you get
-your own results rather than reading someone else's.
+Two versions of the same material — pick whichever suits how you work.
 
-It covers **every exported function in the package**.
+* **`epibyhand_tutorial.ipynb`** — for Colab or Jupyter. Cells are left unrun,
+  so you get your own results rather than reading someone else's. Includes ten
+  exercises with worked answers.
+* **`epibyhand_tutorial.R`** — for RStudio. Same sixteen parts as prose
+  comments, run line by line with `Ctrl+Enter`. Press `Ctrl+Shift+O` for a
+  navigable outline of the sections. No exercises.
+
+Both cover **every exported function in the package**.
 
 | Part | Topic |
 |---|---|
@@ -34,14 +40,12 @@ It covers **every exported function in the package**.
 | 15 | Extending the package — `derivation()`, `derivation_step()` |
 | 16 | A complete analysis, start to finish |
 
-Plus a function reference table and **ten exercises** with worked answers,
-covering study design and measure choice, the rare disease assumption,
-distinguishing confounding from effect modification, diagnosing student errors,
-handling zero cells, constructing Simpson's paradox from scratch, and writing
-your own measure with the derivation API.
-
-Answers are hidden behind collapsible sections, so the exercises work as
-exercises.
+Both also carry a function reference table. The notebook adds **ten
+exercises** with worked answers, covering study design and measure choice, the
+rare disease assumption, distinguishing confounding from effect modification,
+diagnosing student errors, handling zero cells, constructing Simpson's paradox
+from scratch, and writing your own measure with the derivation API. Answers are
+hidden behind collapsible sections, so the exercises work as exercises.
 
 ## Running it
 
@@ -49,12 +53,15 @@ exercises.
 **Runtime → Change runtime type → R**. Run the first cell to install the
 package.
 
-**Locally.** Any Jupyter installation with
-[IRkernel](https://irkernel.github.io/), or open the notebook in VS Code with
-the R extension.
+**In RStudio.** Download `epibyhand_tutorial.R`, open it, and step through with
+`Ctrl+Enter` (`Cmd+Enter` on a Mac). The output is the lesson — every function
+prints the reasoning behind its answer.
 
-**Just reading.** GitHub renders the notebook's text and code, though you
-will need to run it to see the derivations the package prints.
+**In Jupyter.** Any installation with [IRkernel](https://irkernel.github.io/),
+or open the notebook in VS Code with the R extension.
+
+**Just reading.** GitHub renders the notebook's text and code, though you will
+need to run it to see the derivations the package prints.
 
 ## For instructors
 
