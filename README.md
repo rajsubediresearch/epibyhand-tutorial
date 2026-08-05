@@ -10,25 +10,35 @@ local R, nothing to configure beyond switching the Colab runtime to R.
 
 ## What's here
 
-`epibyhand_tutorial.ipynb` — a complete worked tutorial with outputs already
-rendered, so you can read it on GitHub without running anything.
+`epibyhand_tutorial.ipynb` — the tutorial, with cells left unrun so you get
+your own results rather than reading someone else's.
+
+It covers **every exported function in the package**.
 
 | Part | Topic |
 |---|---|
-| 1 | Building a 2 x 2 table |
-| 2 | Risk ratio and risk difference |
-| 3 | Odds ratio, and when it approximates the risk ratio |
-| 4 | Controlling how much detail you see |
-| 5 | Checking a hand calculation with `check_work()` |
-| 6 | Attributable fractions |
-| 7 | Confounding and stratified analysis |
-| 8 | Homogeneity and effect modification |
-| 9 | Building problem sets |
+| 1 | Building a 2 x 2 table — `epi2x2()` |
+| 2 | Risk ratio — `risk_ratio()` |
+| 3 | Risk difference — `risk_difference()` |
+| 4 | Odds ratio — `odds_ratio()` |
+| 5 | Confidence levels, and one trap |
+| 6 | Zero cells and continuity corrections |
+| 7 | Controlling output — `verbose`, `digits` |
+| 8 | Checking hand calculations — `check_work()` |
+| 9 | Attributable fractions — `attributable_fraction()` |
+| 10 | Stratified data — `epi_strata()`, `collapse_strata()` |
+| 11 | Pooling odds ratios — `mh_odds_ratio()` |
+| 12 | Pooling risk ratios — `mh_risk_ratio()` |
+| 13 | Homogeneity — `homogeneity()` |
+| 14 | Programmatic use — `estimate()`, `confint()`, `steps_table()` |
+| 15 | Extending the package — `derivation()`, `derivation_step()` |
+| 16 | A complete analysis, start to finish |
 
-Followed by **eight exercises** with worked answers and explanations, covering
-study design and measure choice, the rare disease assumption, distinguishing
-confounding from effect modification, diagnosing student errors, and
-constructing Simpson's paradox from scratch.
+Plus a function reference table and **ten exercises** with worked answers,
+covering study design and measure choice, the rare disease assumption,
+distinguishing confounding from effect modification, diagnosing student errors,
+handling zero cells, constructing Simpson's paradox from scratch, and writing
+your own measure with the derivation API.
 
 Answers are hidden behind collapsible sections, so the exercises work as
 exercises.
@@ -43,7 +53,8 @@ package.
 [IRkernel](https://irkernel.github.io/), or open the notebook in VS Code with
 the R extension.
 
-**Just reading.** GitHub renders the notebook with all outputs intact.
+**Just reading.** GitHub renders the notebook's text and code, though you
+will need to run it to see the derivations the package prints.
 
 ## For instructors
 
@@ -55,6 +66,8 @@ The tutorial is built around two datasets:
 * The **Whickham cohort** (Appleton, French & Vanderpump, 1996) for
   confounding, where the crude odds ratio of 0.68 reverses to 1.35 after age
   adjustment.
+* A **screening test** example in Part 15, where 90% sensitivity and 90%
+  specificity produce a positive predictive value of 33%.
 
 Everything is self-contained — no data files, no dependencies beyond the
 package itself, which imports only `stats`.
