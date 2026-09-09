@@ -37,8 +37,9 @@ Both cover **every exported function in the package**.
 | 12 | Pooling risk ratios — `mh_risk_ratio()` |
 | 13 | Homogeneity — `homogeneity()` |
 | 14 | Programmatic use — `estimate()`, `confint()`, `steps_table()` |
-| 15 | Extending the package — `derivation()`, `derivation_step()` |
-| 16 | A complete analysis, start to finish |
+| 15 | Predictive values — `predictive_value()` |
+| 16 | Extending the package — `derivation()`, `derivation_step()` |
+| 17 | A complete analysis, start to finish |
 
 Both also carry a function reference table. The notebook adds **ten
 exercises** with worked answers, covering study design and measure choice, the
@@ -73,8 +74,10 @@ The tutorial is built around two datasets:
 * The **Whickham cohort** (Appleton, French & Vanderpump, 1996) for
   confounding, where the crude odds ratio of 0.68 reverses to 1.35 after age
   adjustment.
-* A **screening test** example in Part 15, where 90% sensitivity and 90%
-  specificity produce a positive predictive value of 33%.
+* A **screening test** in Parts 15 and 16, where 90% sensitivity and 90%
+  specificity produce a positive predictive value of 33% — and where the
+  likelihood ratio stays put while the predictive value swings from under 1%
+  to over 90% across populations.
 
 Everything is self-contained — no data files, no dependencies beyond the
 package itself, which imports only `stats`.

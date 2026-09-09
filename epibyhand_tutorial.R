@@ -25,7 +25,7 @@ if (!requireNamespace("epibyhand", quietly = TRUE)) {
 library(epibyhand)
 packageVersion("epibyhand")
 
-# Everything the package exports. Fifteen functions; this script uses all of
+# Everything the package exports. Sixteen functions; this script uses all of
 # them.
 sort(getNamespaceExports("epibyhand"))
 
@@ -213,8 +213,9 @@ confint(odds_ratio(picnic, conf_level = 0.99))   # 99%
 confint(odds_ratio(picnic, conf_level = 0.90))   # 90%
 
 # THE TRAP
-# confint() on an epibyhand object IGNORES its level argument. The level is
-# fixed when the derivation is built, not when you extract from it.
+# confint() on an epibyhand object CANNOT HONOUR a level argument. The level is
+# fixed when the derivation is built, not when you extract from it. Since
+# version 0.2.0 it warns rather than quietly handing back the wrong interval.
 
 d <- odds_ratio(picnic)                # built at 95%
 
@@ -222,9 +223,13 @@ confint(d, level = 0.99)               # LOOKS like 99% -- it is not
 confint(d)                             # identical
 confint(odds_ratio(picnic, conf_level = 0.99))   # this is the 99% interval
 
-# The first two lines are the same numbers. confint(d, level = 0.99) returns
-# the 95% interval, because the interval was already computed and stored when
-# odds_ratio() ran.
+# confint(d, level = 0.99) warns and returns the 95% interval, because the
+# interval was already computed and stored when odds_ratio() ran. The warning
+# names the fix.
+#
+# Before 0.2.0 it returned the wrong interval silently -- which is exactly the
+# failure mode this package exists to prevent, so it was fixed as a
+# correctness bug rather than documented as a quirk.
 #
 # This is a consequence of the package's design -- the whole point is that the
 # derivation shows the arithmetic that produced THAT interval, so an extractor
@@ -715,7 +720,78 @@ worksheet$your_answer <- ""
 worksheet
 
 
-# 15. Extending the package ---------------------------------------------------
+# 15. Predictive values -------------------------------------------------------
+
+# Everything so far has measured an association between an exposure and an
+# outcome. predictive_value() asks a different question: given what a
+# diagnostic test just told me, what should I believe?
+#
+# The table goes in the same shape as every other table in this package, once
+# you read "exposed" as "test positive" and "case" as "diseased":
+#
+#                  Diseased   Healthy
+#     Test +          a (TP)    b (FP)
+#     Test -          c (FN)    d (TN)
+
+options(epibyhand.verbose = 2)
+
+screening <- epi2x2(90, 180, 10, 1720,
+                    exposure = c("Test positive", "Test negative"),
+                    outcome  = c("Diseased", "Healthy"))
+
+predictive_value(screening)
+
+# PPV = 0.33. A test that is 90% sensitive and 90% specific, applied to a
+# population where 5% are actually ill, is WRONG TWO TIMES OUT OF THREE WHEN
+# IT SAYS YOU ARE SICK.
+#
+# This is the most counter-intuitive result in introductory epidemiology, and
+# the derivation shows exactly why: step 3 puts prevalence on the page, and
+# step 4 shows it entering the formula. Sensitivity and specificity never
+# move. The prevalence does all the work.
+
+options(epibyhand.verbose = 1)
+predictive_value(screening, which = "negative")
+
+# NPV = 0.994. The same test that is nearly useless at confirming disease is
+# excellent at ruling it out. That asymmetry is entirely a consequence of the
+# disease being rare, not of anything about the test.
+
+# MOVING THE TEST TO ANOTHER POPULATION
+# The prevalence argument is what makes this function worth having. Supply one
+# and the test's sensitivity and specificity are applied to a population with
+# that prevalence instead of the one in the table, via Bayes' theorem.
+#
+# That is how you take validation data from a hospital clinic -- where
+# prevalence is high because patients were referred -- and ask what the same
+# test would do as a population screen.
+
+options(epibyhand.verbose = 0)
+
+for (p in c(0.001, 0.01, 0.05, 0.20, 0.50)) {
+  cat(sprintf("prevalence %6.3f   PPV %.4f   NPV %.4f\n", p,
+      estimate(predictive_value(screening, prevalence = p)),
+      estimate(predictive_value(screening, which = "negative",
+                                prevalence = p))))
+}
+
+# Nothing about the test changed across those five rows. The PPV moves from
+# under 1% to over 90%.
+#
+# This is why a test that performs well in a clinic can be useless as a
+# population screen, and it is the single most important idea in screening
+# epidemiology. It is also why "the test is 99% accurate" is a meaningless
+# sentence without knowing who is being tested.
+#
+# No confidence interval is reported when you supply a prevalence. The
+# derivation says why: the result is no longer a proportion estimated from
+# these data, so there is nothing to put an interval around.
+
+confint(predictive_value(screening))          # an interval
+predictive_value(screening, prevalence = 0.40)$ci   # NULL
+
+
+# 16. Extending the package ---------------------------------------------------
 
 # derivation() and derivation_step() are exported, which means YOU CAN ADD A
 # MEASURE THE PACKAGE DOES NOT HAVE and it will print, tabulate, and check
@@ -724,23 +800,25 @@ worksheet
 # This is how you should handle a method you teach that is not covered -- write
 # it once, and it behaves like the rest.
 #
-# A WORKED EXAMPLE: POSITIVE PREDICTIVE VALUE
-# Screening metrics are not in epibyhand. Let's add one.
+# A WORKED EXAMPLE: LIKELIHOOD RATIOS
+# Part 15 covered predictive values, which the package provides. Their natural
+# companion, the likelihood ratio, it does not. Let's add it.
+#
+#     LR+ = Sens / (1 - Spec)          LR- = (1 - Sens) / Spec
 
-positive_predictive_value <- function(x, ...) {
+likelihood_ratio <- function(x, ..., which = c("positive", "negative")) {
+  which <- match.arg(which)
   x <- epi2x2(x, ...)
 
   TP <- x$a; FP <- x$b; FN <- x$c; TN <- x$d
-  N    <- TP + FP + FN + TN
   sens <- TP / (TP + FN)
   spec <- TN / (FP + TN)
-  prev <- (TP + FN) / N
-  ppv  <- TP / (TP + FP)
+  lr <- if (which == "positive") sens / (1 - spec) else (1 - sens) / spec
 
   derivation(
-    method   = "Positive predictive value",
-    estimate = ppv,
-    symbol   = "PPV",
+    method   = paste0("Likelihood ratio of a ", which, " test"),
+    estimate = lr,
+    symbol   = if (which == "positive") "LR+" else "LR-",
     data     = x,
     steps = list(
       derivation_step(
@@ -754,50 +832,61 @@ positive_predictive_value <- function(x, ...) {
         substituted = paste0(TN, " / (", FP, " + ", TN, ")"),
         result      = spec),
       derivation_step(
-        label = "Prevalence", symbol = "Prev",
-        formula     = "(TP + FN) / N",
-        substituted = paste0("(", TP, " + ", FN, ") / ", N),
-        result      = prev),
-      derivation_step(
-        label = "Positive predictive value", symbol = "PPV",
-        formula     = "TP / (TP + FP)",
-        substituted = paste0(TP, " / (", TP, " + ", FP, ")"),
-        result      = ppv,
-        note = paste("By Bayes' theorem this equals Sens*Prev /",
-                     "(Sens*Prev + (1-Spec)*(1-Prev)). PPV depends on",
-                     "prevalence; sensitivity and specificity do not."))
+        label   = paste0("Likelihood ratio of a ", which, " test"),
+        symbol  = if (which == "positive") "LR+" else "LR-",
+        formula = if (which == "positive") "Sens / (1 - Spec)" else
+                                           "(1 - Sens) / Spec",
+        substituted = if (which == "positive") {
+          paste0(round(sens, 4), " / (1 - ", round(spec, 4), ")")
+        } else {
+          paste0("(1 - ", round(sens, 4), ") / ", round(spec, 4))
+        },
+        result = lr,
+        note = paste("Built only from sensitivity and specificity, so unlike",
+                     "a predictive value this does not change with",
+                     "prevalence."))
     ),
-    notes = paste("Sensitivity and specificity are properties of the test.",
-                  "PPV is a property of the test AND the population it is",
-                  "used in.")
+    notes = paste("Multiply the pre-test odds by this to get the post-test",
+                  "odds. A LR+ above 10 or a LR- below 0.1 is usually taken",
+                  "as decisive.")
   )
 }
 
-# A screening test with 90% sensitivity and 90% specificity, applied to a
-# population where 5% actually have the disease.
+# The same screening test from Part 15.
 
 options(epibyhand.verbose = 2)
+likelihood_ratio(screening)
 
-screening <- epi2x2(90, 180, 10, 1720,
-                    exposure = c("Test positive", "Test negative"),
-                    outcome  = c("Diseased", "Healthy"))
-
-positive_predictive_value(screening)
-
-# PPV = 0.33. A test that is 90% sensitive and 90% specific, applied to a
-# population with 5% prevalence, is WRONG TWO TIMES OUT OF THREE WHEN IT SAYS
-# YOU ARE SICK. This is the single most counter-intuitive result in
-# introductory epidemiology, and seeing the prevalence sitting there in step 3
-# is what makes it land.
+# LR+ = 9.5. A positive result multiplies the pre-test odds of disease by
+# about nine and a half.
 #
-# Your function is now a first-class citizen. Everything works on it.
+# Now put that beside Part 15. The predictive value of this test ranged from
+# under 1% to over 90% depending on who was tested. THE LIKELIHOOD RATIO DOES
+# NOT MOVE AT ALL -- it is built from sensitivity and specificity, which are
+# properties of the test.
+#
+# That is the whole reason clinicians are taught likelihood ratios. They
+# travel between populations; predictive values do not.
 
-p <- positive_predictive_value(screening)
+options(epibyhand.verbose = 0)
 
-estimate(p)
-steps_table(p)[, c("symbol", "result")]
-check_work(p, 0.90, step = "Sens")
-print(p, verbose = 1)
+# LR+ is the same regardless of who you apply the test to...
+estimate(likelihood_ratio(screening))
+
+# ...while the predictive value it implies is not
+vapply(c(0.01, 0.20), function(p)
+  estimate(predictive_value(screening, prevalence = p)), numeric(1))
+
+# YOUR FUNCTION IS NOW A FIRST-CLASS CITIZEN
+# Everything in the package works on it, because it returns the same kind of
+# object.
+
+lr <- likelihood_ratio(screening)
+
+estimate(lr)
+steps_table(lr)[, c("symbol", "result")]
+check_work(lr, 0.90, step = "Sens")
+print(lr, verbose = 1)
 
 # THE PATTERN
 #   1. Compute your numbers.
@@ -810,10 +899,11 @@ print(p, verbose = 1)
 # per-unit grid, which is how the Mantel-Haenszel weights are displayed.
 #
 # Because all display logic lives in one print method, you write arithmetic
-# and never write display code.
+# and never write display code. You also did not write the verbosity handling,
+# the steps table, or check_work() support -- those came free.
 
 
-# 16. A complete analysis, start to finish ------------------------------------
+# 17. A complete analysis, start to finish ------------------------------------
 
 options(epibyhand.verbose = 0)
 
@@ -875,11 +965,13 @@ cat("  change   :", round(100 * (mh$crude - estimate(mh)) / estimate(mh), 1),
 #                                   interval
 # homogeneity(x, tarone)            Breslow-Day test, Tarone corrected by
 #                                   default
+# predictive_value(x, which,        PPV or NPV by Bayes' theorem, at the
+#   prevalence)                     table's prevalence or a supplied one
 # check_work(x, value, step, tol)   Locate where a hand calculation diverged
 # steps_table(x)                    Derivation as a data frame
 # estimate(x)                       Extract the point estimate
-# confint(x)                        Extract the interval (ignores `level` --
-#                                   see section 5)
+# confint(x)                        Extract the interval (warns if given
+#                                   `level` -- see section 5)
 # derivation(), derivation_step()   Build your own measure
 #
 # OPTIONS
@@ -894,6 +986,8 @@ cat("  change   :", round(100 * (mh$crude - estimate(mh)) / estimate(mh), 1),
 #   among                 attributable_...    "exposed" (default) or
 #                                             "population"
 #   tarone                homogeneity         Tarone's correction, default TRUE
+#   which, prevalence     predictive_value    "positive"/"negative"; optional
+#                                             target prevalence
 #   step, tol             check_work          Target step and relative
 #                                             tolerance
 
