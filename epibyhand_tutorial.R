@@ -18,8 +18,22 @@
 
 # Setup -----------------------------------------------------------------------
 
-if (!requireNamespace("epibyhand", quietly = TRUE)) {
+# This tutorial needs epibyhand 0.2.0 or later.
+# install.packages() alone will not upgrade a version you already have, so
+# check first.
+
+needed <- "0.2.0"
+
+if (!requireNamespace("epibyhand", quietly = TRUE) ||
+    packageVersion("epibyhand") < needed) {
   install.packages("epibyhand")
+}
+
+# If CRAN has not propagated the newest version to your mirror yet, fall back
+# to the development version on GitHub.
+if (packageVersion("epibyhand") < needed) {
+  if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+  remotes::install_github("rajsubediresearch/epibyhand")
 }
 
 library(epibyhand)
